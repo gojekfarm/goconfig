@@ -3,6 +3,7 @@ package goconfig
 import (
 	"github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
+	"sync"
 )
 
 type Config interface {
@@ -13,6 +14,7 @@ type Config interface {
 type configuration map[string]interface{}
 
 var config configuration
+var configMutex sync.RWMutex
 
 type BaseConfig struct {
 }
@@ -66,44 +68,94 @@ func (self BaseConfig) DBConfig() *DBConfig {
 }
 
 func (self BaseConfig) GetValue(key string) string {
-	if _, ok := config[key]; !ok {
-		config[key] = getStringOrPanic(key)
+	configMutex.RLock()
+	v, ok := config[key]
+	if !ok {
+		configMutex.RUnlock()
+
+		v = getStringOrPanic(key)
+
+		configMutex.Lock()
+		config[key] = v
+		configMutex.Unlock()
+
+		return v.(string)
 	}
-	return config[key].(string)
+	configMutex.RUnlock()
+	return v.(string)
 }
 
 func (self BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	if _, ok := config[key]; !ok {
-		var value string
-		if value = viper.GetString(key); !viper.IsSet(key) {
-			value = defaultValue
+	configMutex.RLock()
+	v, ok := config[key]
+	if !ok {
+		configMutex.RUnlock()
+
+		if v = viper.GetString(key); !viper.IsSet(key) {
+			v = defaultValue
 		}
-		config[key] = value
+
+		configMutex.Lock()
+		config[key] = v
+		configMutex.Unlock()
+
+		return v.(string)
 	}
-	return config[key].(string)
+	configMutex.RUnlock()
+	return v.(string)
 }
 
 func (self BaseConfig) GetIntValue(key string) int {
-	if _, ok := config[key]; !ok {
-		config[key] = getIntOrPanic(key)
+	configMutex.RLock()
+	v, ok := config[key]
+	if !ok {
+		configMutex.RUnlock()
+		v = getIntOrPanic(key)
+
+		configMutex.Lock()
+		config[key] = v
+		configMutex.Unlock()
+
+		return v.(int)
 	}
-	return config[key].(int)
+	configMutex.RUnlock()
+	return v.(int)
 }
 
 func (self BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	if _, ok := config[key]; !ok {
-		var value int
-		if value = viper.GetInt(key); !viper.IsSet(key) {
-			value = defaultValue
+	configMutex.RLock()
+	v, ok := config[key]
+	if !ok {
+		configMutex.RUnlock()
+
+		if v = viper.GetInt(key); !viper.IsSet(key) {
+			v = defaultValue
 		}
-		config[key] = value
+
+		configMutex.Lock()
+		config[key] = v
+		configMutex.Unlock()
+
+		return v.(int)
 	}
-	return config[key].(int)
+	configMutex.RUnlock()
+	return v.(int)
 }
 
 func (self BaseConfig) GetFeature(key string) bool {
-	if _, ok := config[key]; !ok {
-		config[key] = getFeature(key)
+	configMutex.RLock()
+	v, ok := config[key]
+	if !ok {
+		configMutex.RUnlock()
+
+		v = getFeature(key)
+
+		configMutex.Lock()
+		config[key] = v
+		configMutex.Unlock()
+
+		return v.(bool)
 	}
-	return config[key].(bool)
+	configMutex.RUnlock()
+	return v.(bool)
 }
