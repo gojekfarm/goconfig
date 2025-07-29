@@ -1,7 +1,7 @@
 package goconfig_test
 
 import (
-	"goconfig"
+	"goconfig/v2"
 	"io/ioutil"
 	"testing"
 	"time"

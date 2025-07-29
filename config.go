@@ -8,7 +8,10 @@ import (
 
 type Config interface {
 	GetValue(string) string
+	GetOptionalValue(key string, defaultValue string) string
 	GetIntValue(string) int
+	GetOptionalIntValue(key string, defaultValue int) int
+	GetFeature(key string) bool
 }
 
 type configuration map[string]interface{}
