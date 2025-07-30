@@ -6,12 +6,18 @@ import (
 	"sync"
 )
 
-type Config interface {
+type ConfigInterface interface {
 	GetValue(string) string
 	GetOptionalValue(key string, defaultValue string) string
 	GetIntValue(string) int
 	GetOptionalIntValue(key string, defaultValue int) int
 	GetFeature(key string) bool
+}
+
+type BaseConfigInterface interface {
+	ConfigInterface
+	Load() error
+	LoadWithOptions(options map[string]interface{}) error
 }
 
 type configuration map[string]interface{}
@@ -21,17 +27,17 @@ type BaseConfig struct {
 	configMutex sync.RWMutex
 }
 
-func NewBaseConfig() Config {
+func NewBaseConfig() BaseConfigInterface {
 	return &BaseConfig{
 		config: make(configuration),
 	}
 }
 
-func (self *BaseConfig) Load() {
-	self.LoadWithOptions(map[string]interface{}{})
+func (self *BaseConfig) Load() error {
+	return self.LoadWithOptions(map[string]interface{}{})
 }
 
-func (self *BaseConfig) LoadWithOptions(options map[string]interface{}) {
+func (self *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
 	viper.SetDefault("port", "3000")
 	viper.SetDefault("log_level", "warn")
 	viper.SetDefault("redis_password", "")
@@ -44,7 +50,10 @@ func (self *BaseConfig) LoadWithOptions(options map[string]interface{}) {
 		viper.AddConfigPath("../")
 	}
 	viper.SetConfigType("yaml")
-	viper.ReadInConfig()
+	err := viper.ReadInConfig()
+	if err != nil {
+		return err
+	}
 	self.config = configuration{}
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
 		self.config["newrelic"] = getNewRelicConfigOrPanic()
@@ -52,6 +61,7 @@ func (self *BaseConfig) LoadWithOptions(options map[string]interface{}) {
 	if options["db"] != nil && options["db"].(bool) {
 		self.config["db_config"] = LoadDbConf()
 	}
+	return nil
 }
 
 func (self *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
