@@ -33,11 +33,11 @@ func NewBaseConfig() BaseConfigInterface {
 	}
 }
 
-func (self *BaseConfig) Load() error {
-	return self.LoadWithOptions(map[string]interface{}{})
+func (cfg *BaseConfig) Load() error {
+	return cfg.LoadWithOptions(map[string]interface{}{})
 }
 
-func (self *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
+func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
 	viper.SetDefault("port", "3000")
 	viper.SetDefault("log_level", "warn")
 	viper.SetDefault("redis_password", "")
@@ -54,126 +54,126 @@ func (self *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	self.config = configuration{}
+	cfg.config = configuration{}
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
-		self.config["newrelic"] = getNewRelicConfigOrPanic()
+		cfg.config["newrelic"] = getNewRelicConfigOrPanic()
 	}
 	if options["db"] != nil && options["db"].(bool) {
-		self.config["db_config"] = LoadDbConf()
+		cfg.config["db_config"] = LoadDbConf()
 	}
 	return nil
 }
 
-func (self *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
+func (cfg *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
 	dbConf.url = getStringOrPanic("db_url_test")
 	dbConf.slaveUrl = getStringOrPanic("db_url_test")
 }
 
-func (self *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
-	self.LoadWithOptions(options)
+func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
+	cfg.LoadWithOptions(options)
 	if options["db"] != nil && options["db"].(bool) {
-		self.setTestDBUrl(self.config["db_config"].(*DBConfig))
+		cfg.setTestDBUrl(cfg.config["db_config"].(*DBConfig))
 	}
 	return nil
 }
 
-func (self *BaseConfig) Newrelic() newrelic.Config {
-	return self.config["newrelic"].(newrelic.Config)
+func (cfg *BaseConfig) Newrelic() newrelic.Config {
+	return cfg.config["newrelic"].(newrelic.Config)
 }
 
-func (self *BaseConfig) DBConfig() *DBConfig {
-	return self.config["db_config"].(*DBConfig)
+func (cfg *BaseConfig) DBConfig() *DBConfig {
+	return cfg.config["db_config"].(*DBConfig)
 }
 
-func (self *BaseConfig) GetValue(key string) string {
-	self.configMutex.RLock()
-	v, ok := self.config[key]
+func (cfg *BaseConfig) GetValue(key string) string {
+	cfg.configMutex.RLock()
+	v, ok := cfg.config[key]
 	if !ok {
-		self.configMutex.RUnlock()
+		cfg.configMutex.RUnlock()
 
 		v = getStringOrPanic(key)
 
-		self.configMutex.Lock()
-		self.config[key] = v
-		self.configMutex.Unlock()
+		cfg.configMutex.Lock()
+		cfg.config[key] = v
+		cfg.configMutex.Unlock()
 
 		return v.(string)
 	}
-	self.configMutex.RUnlock()
+	cfg.configMutex.RUnlock()
 	return v.(string)
 }
 
-func (self *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	self.configMutex.RLock()
-	v, ok := self.config[key]
+func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
+	cfg.configMutex.RLock()
+	v, ok := cfg.config[key]
 	if !ok {
-		self.configMutex.RUnlock()
+		cfg.configMutex.RUnlock()
 
 		if v = viper.GetString(key); !viper.IsSet(key) {
 			v = defaultValue
 		}
 
-		self.configMutex.Lock()
-		self.config[key] = v
-		self.configMutex.Unlock()
+		cfg.configMutex.Lock()
+		cfg.config[key] = v
+		cfg.configMutex.Unlock()
 
 		return v.(string)
 	}
-	self.configMutex.RUnlock()
+	cfg.configMutex.RUnlock()
 	return v.(string)
 }
 
-func (self *BaseConfig) GetIntValue(key string) int {
-	self.configMutex.RLock()
-	v, ok := self.config[key]
+func (cfg *BaseConfig) GetIntValue(key string) int {
+	cfg.configMutex.RLock()
+	v, ok := cfg.config[key]
 	if !ok {
-		self.configMutex.RUnlock()
+		cfg.configMutex.RUnlock()
 		v = getIntOrPanic(key)
 
-		self.configMutex.Lock()
-		self.config[key] = v
-		self.configMutex.Unlock()
+		cfg.configMutex.Lock()
+		cfg.config[key] = v
+		cfg.configMutex.Unlock()
 
 		return v.(int)
 	}
-	self.configMutex.RUnlock()
+	cfg.configMutex.RUnlock()
 	return v.(int)
 }
 
-func (self *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	self.configMutex.RLock()
-	v, ok := self.config[key]
+func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
+	cfg.configMutex.RLock()
+	v, ok := cfg.config[key]
 	if !ok {
-		self.configMutex.RUnlock()
+		cfg.configMutex.RUnlock()
 
 		if v = viper.GetInt(key); !viper.IsSet(key) {
 			v = defaultValue
 		}
 
-		self.configMutex.Lock()
-		self.config[key] = v
-		self.configMutex.Unlock()
+		cfg.configMutex.Lock()
+		cfg.config[key] = v
+		cfg.configMutex.Unlock()
 
 		return v.(int)
 	}
-	self.configMutex.RUnlock()
+	cfg.configMutex.RUnlock()
 	return v.(int)
 }
 
-func (self *BaseConfig) GetFeature(key string) bool {
-	self.configMutex.RLock()
-	v, ok := self.config[key]
+func (cfg *BaseConfig) GetFeature(key string) bool {
+	cfg.configMutex.RLock()
+	v, ok := cfg.config[key]
 	if !ok {
-		self.configMutex.RUnlock()
+		cfg.configMutex.RUnlock()
 
 		v = getFeature(key)
 
-		self.configMutex.Lock()
-		self.config[key] = v
-		self.configMutex.Unlock()
+		cfg.configMutex.Lock()
+		cfg.config[key] = v
+		cfg.configMutex.Unlock()
 
 		return v.(bool)
 	}
-	self.configMutex.RUnlock()
+	cfg.configMutex.RUnlock()
 	return v.(bool)
 }
