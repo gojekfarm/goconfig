@@ -1,4 +1,4 @@
-module goconfig/v2
+module github.com/gojekfarm/goconfig/v2
 
 go 1.18
 

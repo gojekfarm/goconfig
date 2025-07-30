@@ -1,6 +1,7 @@
-package goconfig
+package goconfig_test
 
 import (
+	"github.com/gojekfarm/goconfig/v2"
 	"runtime"
 	"sync"
 	"testing"
@@ -8,7 +9,7 @@ import (
 )
 
 func TestConcurrentGetValue(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 100
@@ -33,7 +34,7 @@ func TestConcurrentGetValue(t *testing.T) {
 }
 
 func TestConcurrentGetValueDifferentKeys(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -62,7 +63,7 @@ func TestConcurrentGetValueDifferentKeys(t *testing.T) {
 }
 
 func TestConcurrentGetIntValue(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 100
@@ -86,7 +87,7 @@ func TestConcurrentGetIntValue(t *testing.T) {
 }
 
 func TestConcurrentGetOptionalValue(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -114,7 +115,7 @@ func TestConcurrentGetOptionalValue(t *testing.T) {
 }
 
 func TestConcurrentGetOptionalIntValue(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -142,7 +143,7 @@ func TestConcurrentGetOptionalIntValue(t *testing.T) {
 }
 
 func TestConcurrentGetFeature(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -170,7 +171,7 @@ func TestConcurrentGetFeature(t *testing.T) {
 }
 
 func TestConcurrentMixedOperations(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 20
@@ -211,7 +212,7 @@ func TestConcurrentLoadAndAccess(t *testing.T) {
 		wg.Add(1)
 		go func(goroutineID int) {
 			defer wg.Done()
-			baseConfig := NewBaseConfig()
+			baseConfig := goconfig.NewBaseConfig()
 			if goroutineID%2 == 0 {
 				// Some goroutines load config
 				baseConfig.Load()
@@ -233,7 +234,7 @@ func TestConcurrentLoadAndAccess(t *testing.T) {
 }
 
 func TestNoDeadlockScenario(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 100
@@ -272,7 +273,7 @@ func TestNoDeadlockScenario(t *testing.T) {
 }
 
 func TestRaceConditionDetection(t *testing.T) {
-	baseConfig := NewBaseConfig()
+	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -296,7 +297,7 @@ func TestRaceConditionDetection(t *testing.T) {
 
 func TestConcurrentCacheEviction(t *testing.T) {
 	// Test scenario where cache might be cleared while being accessed
-	baseConfig := BaseConfig{}
+	baseConfig := goconfig.BaseConfig{}
 	baseConfig.Load()
 
 	const numGoroutines = 20
@@ -310,9 +311,7 @@ func TestConcurrentCacheEviction(t *testing.T) {
 				// One goroutine periodically clears cache
 				for j := 0; j < 10; j++ {
 					time.Sleep(50 * time.Millisecond)
-					baseConfig.configMutex.Lock()
-					baseConfig.config = make(configuration)
-					baseConfig.configMutex.Unlock()
+					baseConfig.Load()
 				}
 			} else {
 				// Other goroutines continuously access values
