@@ -88,92 +88,98 @@ func (cfg *BaseConfig) DBConfig() *DBConfig {
 func (cfg *BaseConfig) GetValue(key string) string {
 	cfg.configMutex.RLock()
 	v, ok := cfg.config[key]
+	cfg.configMutex.RUnlock()
+
 	if !ok {
-		cfg.configMutex.RUnlock()
-
-		v = getStringOrPanic(key)
-
 		cfg.configMutex.Lock()
-		cfg.config[key] = v
+		v, ok = cfg.config[key]
+		if !ok {
+			v = getStringOrPanic(key)
+			cfg.config[key] = v
+		}
 		cfg.configMutex.Unlock()
 
 		return v.(string)
 	}
-	cfg.configMutex.RUnlock()
 	return v.(string)
 }
 
 func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
 	cfg.configMutex.RLock()
 	v, ok := cfg.config[key]
+	cfg.configMutex.RUnlock()
+
 	if !ok {
-		cfg.configMutex.RUnlock()
-
-		if v = viper.GetString(key); !viper.IsSet(key) {
-			v = defaultValue
-		}
-
 		cfg.configMutex.Lock()
-		cfg.config[key] = v
+		v, ok := cfg.config[key]
+		if !ok {
+			if v = viper.GetString(key); !viper.IsSet(key) {
+				v = defaultValue
+			}
+			cfg.config[key] = v
+		}
 		cfg.configMutex.Unlock()
 
 		return v.(string)
 	}
-	cfg.configMutex.RUnlock()
 	return v.(string)
 }
 
 func (cfg *BaseConfig) GetIntValue(key string) int {
 	cfg.configMutex.RLock()
 	v, ok := cfg.config[key]
-	if !ok {
-		cfg.configMutex.RUnlock()
-		v = getIntOrPanic(key)
+	cfg.configMutex.RUnlock()
 
+	if !ok {
 		cfg.configMutex.Lock()
-		cfg.config[key] = v
+		v, ok = cfg.config[key]
+		if !ok {
+			v = getIntOrPanic(key)
+			cfg.config[key] = v
+		}
 		cfg.configMutex.Unlock()
 
 		return v.(int)
 	}
-	cfg.configMutex.RUnlock()
 	return v.(int)
 }
 
 func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
 	cfg.configMutex.RLock()
 	v, ok := cfg.config[key]
+	cfg.configMutex.RUnlock()
+
 	if !ok {
-		cfg.configMutex.RUnlock()
-
-		if v = viper.GetInt(key); !viper.IsSet(key) {
-			v = defaultValue
-		}
-
 		cfg.configMutex.Lock()
-		cfg.config[key] = v
+		v, ok := cfg.config[key]
+		if !ok {
+			if v = viper.GetInt(key); !viper.IsSet(key) {
+				v = defaultValue
+			}
+			cfg.config[key] = v
+		}
 		cfg.configMutex.Unlock()
 
 		return v.(int)
 	}
-	cfg.configMutex.RUnlock()
 	return v.(int)
 }
 
 func (cfg *BaseConfig) GetFeature(key string) bool {
 	cfg.configMutex.RLock()
 	v, ok := cfg.config[key]
+	cfg.configMutex.RUnlock()
+
 	if !ok {
-		cfg.configMutex.RUnlock()
-
-		v = getFeature(key)
-
 		cfg.configMutex.Lock()
-		cfg.config[key] = v
+		v, ok := cfg.config[key]
+		if !ok {
+			v = getFeature(key)
+			cfg.config[key] = v
+		}
 		cfg.configMutex.Unlock()
 
 		return v.(bool)
 	}
-	cfg.configMutex.RUnlock()
 	return v.(bool)
 }
