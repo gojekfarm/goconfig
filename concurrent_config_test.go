@@ -8,12 +8,7 @@ import (
 )
 
 func TestConcurrentGetValue(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 100
@@ -38,12 +33,7 @@ func TestConcurrentGetValue(t *testing.T) {
 }
 
 func TestConcurrentGetValueDifferentKeys(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -72,12 +62,7 @@ func TestConcurrentGetValueDifferentKeys(t *testing.T) {
 }
 
 func TestConcurrentGetIntValue(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 100
@@ -101,12 +86,7 @@ func TestConcurrentGetIntValue(t *testing.T) {
 }
 
 func TestConcurrentGetOptionalValue(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -134,12 +114,7 @@ func TestConcurrentGetOptionalValue(t *testing.T) {
 }
 
 func TestConcurrentGetOptionalIntValue(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -167,12 +142,7 @@ func TestConcurrentGetOptionalIntValue(t *testing.T) {
 }
 
 func TestConcurrentGetFeature(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -200,12 +170,7 @@ func TestConcurrentGetFeature(t *testing.T) {
 }
 
 func TestConcurrentMixedOperations(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 20
@@ -246,7 +211,7 @@ func TestConcurrentLoadAndAccess(t *testing.T) {
 		wg.Add(1)
 		go func(goroutineID int) {
 			defer wg.Done()
-			baseConfig := BaseConfig{}
+			baseConfig := NewBaseConfig()
 			if goroutineID%2 == 0 {
 				// Some goroutines load config
 				baseConfig.Load()
@@ -268,12 +233,7 @@ func TestConcurrentLoadAndAccess(t *testing.T) {
 }
 
 func TestNoDeadlockScenario(t *testing.T) {
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 100
@@ -312,13 +272,7 @@ func TestNoDeadlockScenario(t *testing.T) {
 }
 
 func TestRaceConditionDetection(t *testing.T) {
-	// This test should be run with -race flag to detect race conditions
-	// Reset config for clean test
-	configMutex.Lock()
-	config = make(configuration)
-	configMutex.Unlock()
-
-	baseConfig := BaseConfig{}
+	baseConfig := NewBaseConfig()
 	baseConfig.Load()
 
 	const numGoroutines = 50
@@ -356,9 +310,9 @@ func TestConcurrentCacheEviction(t *testing.T) {
 				// One goroutine periodically clears cache
 				for j := 0; j < 10; j++ {
 					time.Sleep(50 * time.Millisecond)
-					configMutex.Lock()
-					config = make(configuration)
-					configMutex.Unlock()
+					baseConfig.configMutex.Lock()
+					baseConfig.config = make(configuration)
+					baseConfig.configMutex.Unlock()
 				}
 			} else {
 				// Other goroutines continuously access values
