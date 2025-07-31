@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type ConfigInterface interface {
+type ConfigReader interface {
 	GetValue(string) string
 	GetOptionalValue(key string, defaultValue string) string
 	GetIntValue(string) int
@@ -14,8 +14,8 @@ type ConfigInterface interface {
 	GetFeature(key string) bool
 }
 
-type BaseConfigInterface interface {
-	ConfigInterface
+type ConfigManager interface {
+	ConfigReader
 	Load() error
 	LoadWithOptions(options map[string]interface{}) error
 }
@@ -27,7 +27,7 @@ type BaseConfig struct {
 	configMutex sync.RWMutex
 }
 
-func NewBaseConfig() BaseConfigInterface {
+func NewBaseConfig() ConfigManager {
 	return &BaseConfig{
 		config: make(configuration),
 	}
