@@ -20,16 +20,13 @@ type ConfigManager interface {
 	LoadWithOptions(options map[string]interface{}) error
 }
 
-type configuration map[string]interface{}
-
 type BaseConfig struct {
-	config      configuration
-	configMutex sync.RWMutex
+	config sync.Map
 }
 
 func NewBaseConfig() ConfigManager {
 	return &BaseConfig{
-		config: make(configuration),
+		config: sync.Map{},
 	}
 }
 
@@ -54,12 +51,12 @@ func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	cfg.config = configuration{}
+	cfg.config = sync.Map{}
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
-		cfg.config["newrelic"] = getNewRelicConfigOrPanic()
+		cfg.config.Store("newrelic", getNewRelicConfigOrPanic())
 	}
 	if options["db"] != nil && options["db"].(bool) {
-		cfg.config["db_config"] = LoadDbConf()
+		cfg.config.Store("db_config", LoadDbConf())
 	}
 	return nil
 }
@@ -72,32 +69,31 @@ func (cfg *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
 func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
 	cfg.LoadWithOptions(options)
 	if options["db"] != nil && options["db"].(bool) {
-		cfg.setTestDBUrl(cfg.config["db_config"].(*DBConfig))
+		dbUrl, _ := cfg.config.Load("db_config")
+		cfg.setTestDBUrl(dbUrl.(*DBConfig))
 	}
 	return nil
 }
 
 func (cfg *BaseConfig) Newrelic() newrelic.Config {
-	return cfg.config["newrelic"].(newrelic.Config)
+	nrConfig, _ := cfg.config.Load("newrelic")
+	return nrConfig.(newrelic.Config)
 }
 
 func (cfg *BaseConfig) DBConfig() *DBConfig {
-	return cfg.config["db_config"].(*DBConfig)
+	dbConfig, _ := cfg.config.Load("db_config")
+	return dbConfig.(*DBConfig)
 }
 
 func (cfg *BaseConfig) GetValue(key string) string {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
+	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		cfg.configMutex.Lock()
-		v, ok = cfg.config[key]
+		v, ok = cfg.config.Load(key)
 		if !ok {
 			v = getStringOrPanic(key)
-			cfg.config[key] = v
+			cfg.config.Store(key, v)
 		}
-		cfg.configMutex.Unlock()
 
 		return v.(string)
 	}
@@ -105,20 +101,16 @@ func (cfg *BaseConfig) GetValue(key string) string {
 }
 
 func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
+	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		cfg.configMutex.Lock()
-		v, ok := cfg.config[key]
+		v, ok := cfg.config.Load(key)
 		if !ok {
 			if v = viper.GetString(key); !viper.IsSet(key) {
 				v = defaultValue
 			}
-			cfg.config[key] = v
+			cfg.config.Store(key, v)
 		}
-		cfg.configMutex.Unlock()
 
 		return v.(string)
 	}
@@ -126,18 +118,14 @@ func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string 
 }
 
 func (cfg *BaseConfig) GetIntValue(key string) int {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
+	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		cfg.configMutex.Lock()
-		v, ok = cfg.config[key]
+		v, ok = cfg.config.Load(key)
 		if !ok {
 			v = getIntOrPanic(key)
-			cfg.config[key] = v
+			cfg.config.Store(key, v)
 		}
-		cfg.configMutex.Unlock()
 
 		return v.(int)
 	}
@@ -145,20 +133,16 @@ func (cfg *BaseConfig) GetIntValue(key string) int {
 }
 
 func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
+	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		cfg.configMutex.Lock()
-		v, ok := cfg.config[key]
+		v, ok := cfg.config.Load(key)
 		if !ok {
 			if v = viper.GetInt(key); !viper.IsSet(key) {
 				v = defaultValue
 			}
-			cfg.config[key] = v
+			cfg.config.Store(key, v)
 		}
-		cfg.configMutex.Unlock()
 
 		return v.(int)
 	}
@@ -166,18 +150,14 @@ func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
 }
 
 func (cfg *BaseConfig) GetFeature(key string) bool {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
+	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		cfg.configMutex.Lock()
-		v, ok := cfg.config[key]
+		v, ok := cfg.config.Load(key)
 		if !ok {
 			v = getFeature(key)
-			cfg.config[key] = v
+			cfg.config.Store(key, v)
 		}
-		cfg.configMutex.Unlock()
 
 		return v.(bool)
 	}
