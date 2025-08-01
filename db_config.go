@@ -35,13 +35,13 @@ func (self *DBConfig) ConnMaxLifetime() time.Duration {
 	return self.connMaxLifetime
 }
 
-func LoadDbConf() *DBConfig {
+func LoadDbConf(loader *ConfigLoader) *DBConfig {
 	return &DBConfig{
-		driver:          getStringOrPanic("DB_DRIVER"),
-		url:             getStringOrPanic("DB_URL"),
-		slaveUrl:        getStringOrPanic("DB_SLAVE_URL"),
-		maxConn:         getIntOrPanic("DB_MAX_CONN"),
-		idleConn:        getIntOrPanic("DB_IDLE_CONN"),
-		connMaxLifetime: time.Duration(getIntOrPanic("DB_CONN_MAX_LIFETIME")) * time.Second,
+		driver:          getStringOrPanic(loader, "DB_DRIVER"),
+		url:             getStringOrPanic(loader, "DB_URL"),
+		slaveUrl:        getStringOrPanic(loader, "DB_SLAVE_URL"),
+		maxConn:         getIntOrPanic(loader, "DB_MAX_CONN"),
+		idleConn:        getIntOrPanic(loader, "DB_IDLE_CONN"),
+		connMaxLifetime: time.Duration(getIntOrPanic(loader, "DB_CONN_MAX_LIFETIME")) * time.Second,
 	}
 }

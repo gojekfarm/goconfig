@@ -2,8 +2,6 @@ package goconfig
 
 import (
 	"github.com/newrelic/go-agent"
-	"github.com/spf13/viper"
-	"sync"
 )
 
 type ConfigReader interface {
@@ -20,16 +18,19 @@ type ConfigManager interface {
 	LoadWithOptions(options map[string]interface{}) error
 }
 
-type configuration map[string]interface{}
-
 type BaseConfig struct {
-	config      configuration
-	configMutex sync.RWMutex
+	loader      *ConfigLoader
+	nrConfig    newrelic.Config
+	dbConfig    *DBConfig
+	hasNewRelic bool
+	hasDB       bool
 }
 
 func NewBaseConfig() ConfigManager {
 	return &BaseConfig{
-		config: make(configuration),
+		loader:      NewConfigLoader(),
+		hasNewRelic: false,
+		hasDB:       false,
 	}
 }
 
@@ -38,148 +39,82 @@ func (cfg *BaseConfig) Load() error {
 }
 
 func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
-	viper.SetDefault("port", "3000")
-	viper.SetDefault("log_level", "warn")
-	viper.SetDefault("redis_password", "")
-	viper.AutomaticEnv()
-	viper.SetConfigName("application")
+	cfg.loader = NewConfigLoader()
+	cfg.loader.SetDefault("port", "3000")
+	cfg.loader.SetDefault("log_level", "warn")
+	cfg.loader.SetDefault("redis_password", "")
+	cfg.loader.SetConfigName("application")
 	if options["configPath"] != nil {
-		viper.AddConfigPath(options["configPath"].(string))
+		cfg.loader.AddConfigPath(options["configPath"].(string))
 	} else {
-		viper.AddConfigPath("./")
-		viper.AddConfigPath("../")
+		cfg.loader.AddConfigPath("./")
+		cfg.loader.AddConfigPath("../")
 	}
-	viper.SetConfigType("yaml")
-	err := viper.ReadInConfig()
+	cfg.loader.SetConfigType("yml")
+	err := cfg.loader.ReadYamlConfig()
 	if err != nil {
 		return err
 	}
-	cfg.config = configuration{}
+
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
-		cfg.config["newrelic"] = getNewRelicConfigOrPanic()
+		cfg.nrConfig = getNewRelicConfigOrPanic(cfg.loader)
+		cfg.hasNewRelic = true
 	}
 	if options["db"] != nil && options["db"].(bool) {
-		cfg.config["db_config"] = LoadDbConf()
+		cfg.dbConfig = LoadDbConf(cfg.loader)
+		cfg.hasDB = true
 	}
 	return nil
 }
 
 func (cfg *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
-	dbConf.url = getStringOrPanic("db_url_test")
-	dbConf.slaveUrl = getStringOrPanic("db_url_test")
+	dbConf.url = getStringOrPanic(cfg.loader, "db_url_test")
+	dbConf.slaveUrl = getStringOrPanic(cfg.loader, "db_url_test")
 }
 
 func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
-	cfg.LoadWithOptions(options)
-	if options["db"] != nil && options["db"].(bool) {
-		cfg.setTestDBUrl(cfg.config["db_config"].(*DBConfig))
+	err := cfg.LoadWithOptions(options)
+	if err != nil {
+		return err
+	}
+	if options["db"] != nil && options["db"].(bool) && cfg.hasDB {
+		cfg.setTestDBUrl(cfg.dbConfig)
 	}
 	return nil
 }
 
 func (cfg *BaseConfig) Newrelic() newrelic.Config {
-	return cfg.config["newrelic"].(newrelic.Config)
+	return cfg.nrConfig
 }
 
 func (cfg *BaseConfig) DBConfig() *DBConfig {
-	return cfg.config["db_config"].(*DBConfig)
+	return cfg.dbConfig
 }
 
 func (cfg *BaseConfig) GetValue(key string) string {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
-
-	if !ok {
-		cfg.configMutex.Lock()
-		v, ok = cfg.config[key]
-		if !ok {
-			v = getStringOrPanic(key)
-			cfg.config[key] = v
-		}
-		cfg.configMutex.Unlock()
-
-		return v.(string)
-	}
-	return v.(string)
+	return getStringOrPanic(cfg.loader, key)
 }
 
 func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
-
+	v, ok := cfg.loader.GetValue(key)
 	if !ok {
-		cfg.configMutex.Lock()
-		v, ok := cfg.config[key]
-		if !ok {
-			if v = viper.GetString(key); !viper.IsSet(key) {
-				v = defaultValue
-			}
-			cfg.config[key] = v
-		}
-		cfg.configMutex.Unlock()
-
-		return v.(string)
+		return defaultValue
 	}
 	return v.(string)
 }
 
 func (cfg *BaseConfig) GetIntValue(key string) int {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
-
-	if !ok {
-		cfg.configMutex.Lock()
-		v, ok = cfg.config[key]
-		if !ok {
-			v = getIntOrPanic(key)
-			cfg.config[key] = v
-		}
-		cfg.configMutex.Unlock()
-
-		return v.(int)
-	}
-	return v.(int)
+	return getIntOrPanic(cfg.loader, key)
 }
 
 func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
-
+	v, ok := cfg.loader.GetValue(key)
 	if !ok {
-		cfg.configMutex.Lock()
-		v, ok := cfg.config[key]
-		if !ok {
-			if v = viper.GetInt(key); !viper.IsSet(key) {
-				v = defaultValue
-			}
-			cfg.config[key] = v
-		}
-		cfg.configMutex.Unlock()
-
-		return v.(int)
+		return defaultValue
 	}
 	return v.(int)
 }
 
 func (cfg *BaseConfig) GetFeature(key string) bool {
-	cfg.configMutex.RLock()
-	v, ok := cfg.config[key]
-	cfg.configMutex.RUnlock()
-
-	if !ok {
-		cfg.configMutex.Lock()
-		v, ok := cfg.config[key]
-		if !ok {
-			v = getFeature(key)
-			cfg.config[key] = v
-		}
-		cfg.configMutex.Unlock()
-
-		return v.(bool)
-	}
-	return v.(bool)
+	return getFeature(cfg.loader, key)
 }

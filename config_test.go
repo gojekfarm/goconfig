@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,28 +14,24 @@ type AppConfig struct {
 }
 
 func TestShouldSetDefaultForPort(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.Equal(t, "3000", config.GetValue("port"))
 }
 
 func TestShouldSetDefaultForLogLevel(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.Equal(t, "warn", config.GetValue("log_level"))
 }
 
 func TestShouldSetDefaultForRedisPassword(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.Equal(t, "", config.GetValue("redis_password"))
 }
 
 func TestShouldSetNewRelicBasedOnApplicationConfig(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.LoadWithOptions(map[string]interface{}{"newrelic": true})
 	assert.Equal(t, "foo", config.Newrelic().AppName)
@@ -44,14 +39,12 @@ func TestShouldSetNewRelicBasedOnApplicationConfig(t *testing.T) {
 }
 
 func TestShouldGetValueBasedOnApplicationConfig(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.Equal(t, "bar", config.GetValue("foo"))
 }
 
 func TestShouldGetOptionalValueBasedOnApplicationConfig(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.Equal(t, "bar", config.GetOptionalValue("foo", "baz"))
@@ -60,7 +53,6 @@ func TestShouldGetOptionalValueBasedOnApplicationConfig(t *testing.T) {
 }
 
 func TestShouldGetIntValueBasedOnApplicationConfig(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.Equal(t, 1, config.GetIntValue("someInt"))
@@ -68,7 +60,6 @@ func TestShouldGetIntValueBasedOnApplicationConfig(t *testing.T) {
 }
 
 func TestShouldGetOptionalIntValueBasedOnApplicationConfig(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.Equal(t, 1, config.GetOptionalIntValue("someInt", 10))
@@ -77,7 +68,6 @@ func TestShouldGetOptionalIntValueBasedOnApplicationConfig(t *testing.T) {
 }
 
 func TestShouldGetFeature(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.Load()
 	assert.True(t, config.GetFeature("someFeature"))
@@ -87,7 +77,6 @@ func TestShouldGetFeature(t *testing.T) {
 }
 
 func TestShouldGetDBConfig(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.LoadWithOptions(map[string]interface{}{"db": true})
 	assert.Equal(t, "test://something", config.DBConfig().Url())
@@ -99,7 +88,6 @@ func TestShouldGetDBConfig(t *testing.T) {
 }
 
 func TestShouldGetTestDBConfigOnLoadTestConfig(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	config.LoadTestConfig(map[string]interface{}{"db": true})
 	assert.Equal(t, "test://somethingTest", config.DBConfig().Url())
@@ -111,7 +99,6 @@ func TestShouldGetTestDBConfigOnLoadTestConfig(t *testing.T) {
 }
 
 func TestShouldSetConfigPathBasedOnOptionaParam(t *testing.T) {
-	defer viper.Reset()
 	config := &AppConfig{}
 	confData := []byte("foo: 9998\n")
 	ioutil.WriteFile("/tmp/application.yml", confData, 0644)
