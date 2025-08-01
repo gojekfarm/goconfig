@@ -82,6 +82,11 @@ func (c *ConfigLoader) GetValue(key string) (interface{}, bool) {
 	if ok {
 		return envVal, true
 	}
+	key = strings.ToLower(key)
+	lowercaseEnvVal, ok := os.LookupEnv(key)
+	if ok {
+		return lowercaseEnvVal, true
+	}
 
 	val, exists := c.config[key]
 	return val, exists
