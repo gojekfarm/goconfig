@@ -50,7 +50,6 @@ func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
 		cfg.loader.AddConfigPath("./")
 		cfg.loader.AddConfigPath("../")
 	}
-	cfg.loader.SetConfigType("yml")
 	err := cfg.loader.ReadYamlConfig()
 	if err != nil {
 		return err
