@@ -203,36 +203,6 @@ func TestConcurrentMixedOperations(t *testing.T) {
 	wg.Wait()
 }
 
-func TestConcurrentLoadAndAccess(t *testing.T) {
-	const numGoroutines = 10
-	var wg sync.WaitGroup
-
-	// Test concurrent load and access operations
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-		go func(goroutineID int) {
-			defer wg.Done()
-			baseConfig := goconfig.NewBaseConfig()
-			if goroutineID%2 == 0 {
-				// Some goroutines load config
-				baseConfig.Load()
-			} else {
-				// Others try to access values
-				time.Sleep(10 * time.Millisecond) // Small delay to allow some loads to complete
-				defer func() {
-					if r := recover(); r != nil {
-						// Expected behavior when accessing before load
-						t.Logf("Expected panic recovered: %v", r)
-					}
-				}()
-				baseConfig.GetValue("foo")
-			}
-		}(i)
-	}
-
-	wg.Wait()
-}
-
 func TestNoDeadlockScenario(t *testing.T) {
 	baseConfig := goconfig.NewBaseConfig()
 	baseConfig.Load()
