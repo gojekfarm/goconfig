@@ -10,14 +10,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// ConfigLoader loads and caches YAML configuration into a hashmap
 type ConfigLoader struct {
 	config      map[string]interface{}
 	configPaths []string
 	configName  string
 }
 
-// NewConfigLoader creates a new ConfigLoader instance
 func NewConfigLoader() *ConfigLoader {
 	return &ConfigLoader{
 		config:      make(map[string]interface{}),
@@ -26,22 +24,18 @@ func NewConfigLoader() *ConfigLoader {
 	}
 }
 
-// SetDefault sets a default value for a key
 func (c *ConfigLoader) SetDefault(key string, value interface{}) {
 	c.config[strings.ToLower(key)] = value
 }
 
-// SetConfigName sets the name of the config file without extension
 func (c *ConfigLoader) SetConfigName(name string) {
 	c.configName = name
 }
 
-// AddConfigPath adds a path to search for the config file in
 func (c *ConfigLoader) AddConfigPath(path string) {
 	c.configPaths = append(c.configPaths, path)
 }
 
-// ReadYamlConfig reads in the config file from one of the search paths
 func (c *ConfigLoader) ReadYamlConfig() error {
 	configFile, found := c.getConfigFile()
 
@@ -84,6 +78,11 @@ func (c *ConfigLoader) getConfigFile() (string, bool) {
 
 func (c *ConfigLoader) GetValue(key string) (interface{}, bool) {
 	key = strings.ToLower(key)
+	envVal, ok := os.LookupEnv(key)
+	if ok {
+		return envVal, true
+	}
+
 	val, exists := c.config[key]
 	return val, exists
 }
