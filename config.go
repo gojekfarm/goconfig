@@ -19,18 +19,14 @@ type ConfigManager interface {
 }
 
 type BaseConfig struct {
-	loader      *ConfigLoader
-	nrConfig    newrelic.Config
-	dbConfig    *DBConfig
-	hasNewRelic bool
-	hasDB       bool
+	loader   *ConfigLoader
+	nrConfig newrelic.Config
+	dbConfig *DBConfig
 }
 
 func NewBaseConfig() ConfigManager {
 	return &BaseConfig{
-		loader:      NewConfigLoader(),
-		hasNewRelic: false,
-		hasDB:       false,
+		loader: NewConfigLoader(),
 	}
 }
 
@@ -57,11 +53,9 @@ func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
 
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
 		cfg.nrConfig = getNewRelicConfigOrPanic(cfg.loader)
-		cfg.hasNewRelic = true
 	}
 	if options["db"] != nil && options["db"].(bool) {
 		cfg.dbConfig = LoadDbConf(cfg.loader)
-		cfg.hasDB = true
 	}
 	return nil
 }
@@ -76,7 +70,7 @@ func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	if options["db"] != nil && options["db"].(bool) && cfg.hasDB {
+	if options["db"] != nil && options["db"].(bool) {
 		cfg.setTestDBUrl(cfg.dbConfig)
 	}
 	return nil
