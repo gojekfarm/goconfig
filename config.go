@@ -19,14 +19,14 @@ type ConfigManager interface {
 }
 
 type BaseConfig struct {
-	loader   *ConfigLoader
+	loader   *ConfigAccessor
 	nrConfig newrelic.Config
 	dbConfig *DBConfig
 }
 
 func NewBaseConfig() ConfigManager {
 	return &BaseConfig{
-		loader: NewConfigLoader(),
+		loader: NewConfigAccessor(),
 	}
 }
 
@@ -35,7 +35,7 @@ func (cfg *BaseConfig) Load() error {
 }
 
 func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
-	cfg.loader = NewConfigLoader()
+	cfg.loader = NewConfigAccessor()
 	cfg.loader.SetDefault("port", "3000")
 	cfg.loader.SetDefault("log_level", "warn")
 	cfg.loader.SetDefault("redis_password", "")

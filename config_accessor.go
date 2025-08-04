@@ -9,33 +9,33 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type ConfigLoader struct {
+type ConfigAccessor struct {
 	config      map[string]interface{}
 	configPaths []string
 	configName  string
 }
 
-func NewConfigLoader() *ConfigLoader {
-	return &ConfigLoader{
+func NewConfigAccessor() *ConfigAccessor {
+	return &ConfigAccessor{
 		config:      make(map[string]interface{}),
 		configPaths: []string{},
 		configName:  "application",
 	}
 }
 
-func (c *ConfigLoader) SetDefault(key string, value interface{}) {
+func (c *ConfigAccessor) SetDefault(key string, value interface{}) {
 	c.config[strings.ToLower(key)] = value
 }
 
-func (c *ConfigLoader) SetConfigName(name string) {
+func (c *ConfigAccessor) SetConfigName(name string) {
 	c.configName = name
 }
 
-func (c *ConfigLoader) AddConfigPath(path string) {
+func (c *ConfigAccessor) AddConfigPath(path string) {
 	c.configPaths = append(c.configPaths, path)
 }
 
-func (c *ConfigLoader) ReadYamlConfig() error {
+func (c *ConfigAccessor) ReadYamlConfig() error {
 	configFile, found := c.getConfigFile()
 
 	if !found {
@@ -62,7 +62,7 @@ func (c *ConfigLoader) ReadYamlConfig() error {
 	return nil
 }
 
-func (c *ConfigLoader) getConfigFile() (string, bool) {
+func (c *ConfigAccessor) getConfigFile() (string, bool) {
 	extensions := []string{"yml", "yaml"}
 	for _, path := range c.configPaths {
 		for _, ext := range extensions {
@@ -75,7 +75,7 @@ func (c *ConfigLoader) getConfigFile() (string, bool) {
 	return "", false
 }
 
-func (c *ConfigLoader) GetValue(key string) (interface{}, bool) {
+func (c *ConfigAccessor) GetValue(key string) (interface{}, bool) {
 	envVal, ok := os.LookupEnv(key)
 	if ok {
 		return envVal, true

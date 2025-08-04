@@ -35,7 +35,7 @@ func (self *DBConfig) ConnMaxLifetime() time.Duration {
 	return self.connMaxLifetime
 }
 
-func LoadDbConf(loader *ConfigLoader) *DBConfig {
+func LoadDbConf(loader *ConfigAccessor) *DBConfig {
 	return &DBConfig{
 		driver:          getStringOrPanic(loader, "DB_DRIVER"),
 		url:             getStringOrPanic(loader, "DB_URL"),
