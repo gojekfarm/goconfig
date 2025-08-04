@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 )
 
-type ConfigAccessor struct {
+type YamlConfigAccessor struct {
 	repository  ConfigRepository
 	configPaths []string
 	configName  string
 }
 
-func NewConfigAccessor() *ConfigAccessor {
-	return &ConfigAccessor{
+func NewYamlConfigAccessor() *YamlConfigAccessor {
+	return &YamlConfigAccessor{
 		repository: NewEnvConfigRepositoryDecorator(
 			NewInMemoryConfigRepository(),
 		),
@@ -23,19 +23,19 @@ func NewConfigAccessor() *ConfigAccessor {
 	}
 }
 
-func (c *ConfigAccessor) Set(key string, value interface{}) {
+func (c *YamlConfigAccessor) Set(key string, value interface{}) {
 	c.repository.Set(key, value)
 }
 
-func (c *ConfigAccessor) SetConfigName(name string) {
+func (c *YamlConfigAccessor) SetConfigName(name string) {
 	c.configName = name
 }
 
-func (c *ConfigAccessor) AddPath(path string) {
+func (c *YamlConfigAccessor) AddPath(path string) {
 	c.configPaths = append(c.configPaths, path)
 }
 
-func (c *ConfigAccessor) Load() error {
+func (c *YamlConfigAccessor) Load() error {
 	configFile, found := c.getConfigFile()
 
 	if !found {
@@ -60,7 +60,7 @@ func (c *ConfigAccessor) Load() error {
 	return nil
 }
 
-func (c *ConfigAccessor) getConfigFile() (string, bool) {
+func (c *YamlConfigAccessor) getConfigFile() (string, bool) {
 	extensions := []string{"yml", "yaml"}
 	for _, path := range c.configPaths {
 		for _, ext := range extensions {
@@ -73,7 +73,7 @@ func (c *ConfigAccessor) getConfigFile() (string, bool) {
 	return "", false
 }
 
-func (c *ConfigAccessor) Get(key string) (interface{}, bool) {
+func (c *YamlConfigAccessor) Get(key string) (interface{}, bool) {
 	val, exists := c.repository.Get(key)
 	return val, exists
 }
