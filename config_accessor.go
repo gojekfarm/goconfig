@@ -152,3 +152,7 @@ func (c *YamlConfigAccessor) Get(key string) (interface{}, bool) {
 func (c *YamlConfigAccessor) Set(key string, value interface{}) {
 	c.repository.Set(key, value)
 }
+
+func (c *YamlConfigAccessor) SetDefault(key string, value interface{}) {
+	c.repository.Set(key, value)
+}
