@@ -19,14 +19,14 @@ type ConfigManager interface {
 }
 
 type BaseConfig struct {
-	accessor ConfigFileAccessor
+	Accessor ConfigFileAccessor
 	nrConfig newrelic.Config
 	dbConfig *DBConfig
 }
 
-func NewBaseConfig() ConfigManager {
+func NewBaseConfig(accessor ConfigFileAccessor) ConfigManager {
 	return &BaseConfig{
-		accessor: NewDefaultYamlConfigAccessor(),
+		Accessor: accessor,
 	}
 }
 
@@ -35,34 +35,36 @@ func (cfg *BaseConfig) Load() error {
 }
 
 func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
-	cfg.accessor = NewDefaultYamlConfigAccessor()
-	cfg.accessor.Set("port", "3000")
-	cfg.accessor.Set("log_level", "warn")
-	cfg.accessor.Set("redis_password", "")
-	cfg.accessor.SetConfigName("application")
-	if options["configPath"] != nil {
-		cfg.accessor.AddPath(options["configPath"].(string))
-	} else {
-		cfg.accessor.AddPath("./")
-		cfg.accessor.AddPath("../")
+	if cfg.Accessor == nil {
+		cfg.Accessor = NewDefaultYamlConfigAccessor()
 	}
-	err := cfg.accessor.Load()
+	cfg.Accessor.Set("port", "3000")
+	cfg.Accessor.Set("log_level", "warn")
+	cfg.Accessor.Set("redis_password", "")
+	cfg.Accessor.SetConfigName("application")
+	if options["configPath"] != nil {
+		cfg.Accessor.AddPath(options["configPath"].(string))
+	} else {
+		cfg.Accessor.AddPath("./")
+		cfg.Accessor.AddPath("../")
+	}
+	err := cfg.Accessor.Load()
 	if err != nil {
 		return err
 	}
 
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
-		cfg.nrConfig = getNewRelicConfigOrPanic(cfg.accessor)
+		cfg.nrConfig = getNewRelicConfigOrPanic(cfg.Accessor)
 	}
 	if options["db"] != nil && options["db"].(bool) {
-		cfg.dbConfig = LoadDbConf(cfg.accessor)
+		cfg.dbConfig = LoadDbConf(cfg.Accessor)
 	}
 	return nil
 }
 
 func (cfg *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
-	dbConf.url = getStringOrPanic(cfg.accessor, "db_url_test")
-	dbConf.slaveUrl = getStringOrPanic(cfg.accessor, "db_url_test")
+	dbConf.url = getStringOrPanic(cfg.Accessor, "db_url_test")
+	dbConf.slaveUrl = getStringOrPanic(cfg.Accessor, "db_url_test")
 }
 
 func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
@@ -85,11 +87,11 @@ func (cfg *BaseConfig) DBConfig() *DBConfig {
 }
 
 func (cfg *BaseConfig) GetValue(key string) string {
-	return getStringOrPanic(cfg.accessor, key)
+	return getStringOrPanic(cfg.Accessor, key)
 }
 
 func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	v, ok := cfg.accessor.Get(key)
+	v, ok := cfg.Accessor.Get(key)
 	if !ok {
 		return defaultValue
 	}
@@ -97,11 +99,11 @@ func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string 
 }
 
 func (cfg *BaseConfig) GetIntValue(key string) int {
-	return getIntOrPanic(cfg.accessor, key)
+	return getIntOrPanic(cfg.Accessor, key)
 }
 
 func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	v, ok := cfg.accessor.Get(key)
+	v, ok := cfg.Accessor.Get(key)
 	if !ok {
 		return defaultValue
 	}
@@ -109,5 +111,5 @@ func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
 }
 
 func (cfg *BaseConfig) GetFeature(key string) bool {
-	return getFeature(cfg.accessor, key)
+	return getFeature(cfg.Accessor, key)
 }
