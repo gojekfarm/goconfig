@@ -1,0 +1,32 @@
+name: Go Tests
+
+on:
+  push:
+    branches: [ 'master' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go 1.18
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: |
+          find . -type f -name "*_test.go" -not -path "./vendor/*" | 
+            xargs dirname | 
+            sort -u | 
+            xargs -I{} sh -c 'echo "Testing {}"; cd {} && go test -v ./...'

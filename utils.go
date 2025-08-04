@@ -2,39 +2,34 @@ package goconfig
 
 import (
 	"fmt"
-	"strconv"
-
-	"github.com/spf13/viper"
+	"github.com/spf13/cast"
 )
 
-func getIntOrPanic(key string) int {
-	checkKey(key)
-	v, err := strconv.Atoi(viper.GetString(key))
-	panicIfErrorForKey(err, key)
-	return v
-}
-
-func getFeature(key string) bool {
-	v, err := strconv.ParseBool(viper.GetString(key))
-	if err != nil {
-		return false
-	}
-	return v
-}
-
-func checkKey(key string) {
-	if !viper.IsSet(key) {
+func getIntOrPanic(accessor ConfigAccessor, key string) int {
+	v, ok := accessor.Get(key)
+	if !ok {
 		panic(fmt.Errorf("%s key is not set", key))
 	}
+	return cast.ToInt(v)
 }
 
-func panicIfErrorForKey(err error, key string) {
-	if err != nil {
-		panic(fmt.Errorf("Could not parse key: %s. Error: %v", key, err))
+func getFeature(accessor ConfigAccessor, key string) bool {
+	v, ok := accessor.Get(key)
+	if !ok {
+		return false
 	}
+	return cast.ToBool(v)
 }
 
-func getStringOrPanic(key string) string {
-	checkKey(key)
-	return viper.GetString(key)
+func getStringOrPanic(accessor ConfigAccessor, key string) string {
+	v, ok := accessor.Get(key)
+	if !ok {
+		panic(fmt.Errorf("%s key is not set", key))
+	}
+	return cast.ToString(v)
+}
+
+func getString(accessor ConfigAccessor, key string) string {
+	v, _ := accessor.Get(key)
+	return cast.ToString(v)
 }

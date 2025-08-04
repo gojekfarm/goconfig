@@ -2,108 +2,114 @@ package goconfig
 
 import (
 	"github.com/newrelic/go-agent"
-	"github.com/spf13/viper"
 )
 
-type Config interface {
+type ConfigReader interface {
 	GetValue(string) string
+	GetOptionalValue(key string, defaultValue string) string
 	GetIntValue(string) int
+	GetOptionalIntValue(key string, defaultValue int) int
+	GetFeature(key string) bool
 }
 
-type configuration map[string]interface{}
-
-var config configuration
+type ConfigManager interface {
+	ConfigReader
+	Load() error
+	LoadWithOptions(options map[string]interface{}) error
+}
 
 type BaseConfig struct {
+	Accessor ConfigFileAccessor
+	nrConfig newrelic.Config
+	dbConfig *DBConfig
 }
 
-func (self BaseConfig) Load() {
-	self.LoadWithOptions(map[string]interface{}{})
+func NewBaseConfig(accessor ConfigFileAccessor) ConfigManager {
+	return &BaseConfig{
+		Accessor: accessor,
+	}
 }
 
-func (self BaseConfig) LoadWithOptions(options map[string]interface{}) {
-	viper.SetDefault("port", "3000")
-	viper.SetDefault("log_level", "warn")
-	viper.SetDefault("redis_password", "")
-	viper.AutomaticEnv()
-	viper.SetConfigName("application")
+func (cfg *BaseConfig) Load() error {
+	return cfg.LoadWithOptions(map[string]interface{}{})
+}
+
+func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
+	if cfg.Accessor == nil {
+		cfg.Accessor = NewDefaultYamlConfigAccessor()
+	}
+	cfg.Accessor.Set("port", "3000")
+	cfg.Accessor.Set("log_level", "warn")
+	cfg.Accessor.Set("redis_password", "")
+	cfg.Accessor.SetConfigName("application")
 	if options["configPath"] != nil {
-		viper.AddConfigPath(options["configPath"].(string))
+		cfg.Accessor.AddPath(options["configPath"].(string))
 	} else {
-		viper.AddConfigPath("./")
-		viper.AddConfigPath("../")
+		cfg.Accessor.AddPath("./")
+		cfg.Accessor.AddPath("../")
 	}
-	viper.SetConfigType("yaml")
-	viper.ReadInConfig()
-	config = configuration{}
+	err := cfg.Accessor.Load()
+	if err != nil {
+		return err
+	}
+
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
-		config["newrelic"] = getNewRelicConfigOrPanic()
+		cfg.nrConfig = getNewRelicConfigOrPanic(cfg.Accessor)
 	}
 	if options["db"] != nil && options["db"].(bool) {
-		config["db_config"] = LoadDbConf()
-	}
-}
-
-func (self BaseConfig) setTestDBUrl(dbConf *DBConfig) {
-	dbConf.url = getStringOrPanic("db_url_test")
-	dbConf.slaveUrl = getStringOrPanic("db_url_test")
-}
-
-func (self BaseConfig) LoadTestConfig(options map[string]interface{}) error {
-	self.LoadWithOptions(options)
-	if options["db"] != nil && options["db"].(bool) {
-		self.setTestDBUrl(config["db_config"].(*DBConfig))
+		cfg.dbConfig = LoadDbConf(cfg.Accessor)
 	}
 	return nil
 }
 
-func (self BaseConfig) Newrelic() newrelic.Config {
-	return config["newrelic"].(newrelic.Config)
+func (cfg *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
+	dbConf.url = getStringOrPanic(cfg.Accessor, "db_url_test")
+	dbConf.slaveUrl = getStringOrPanic(cfg.Accessor, "db_url_test")
 }
 
-func (self BaseConfig) DBConfig() *DBConfig {
-	return config["db_config"].(*DBConfig)
-}
-
-func (self BaseConfig) GetValue(key string) string {
-	if _, ok := config[key]; !ok {
-		config[key] = getStringOrPanic(key)
+func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
+	err := cfg.LoadWithOptions(options)
+	if err != nil {
+		return err
 	}
-	return config[key].(string)
+	if options["db"] != nil && options["db"].(bool) {
+		cfg.setTestDBUrl(cfg.dbConfig)
+	}
+	return nil
 }
 
-func (self BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	if _, ok := config[key]; !ok {
-		var value string
-		if value = viper.GetString(key); !viper.IsSet(key) {
-			value = defaultValue
-		}
-		config[key] = value
-	}
-	return config[key].(string)
+func (cfg *BaseConfig) Newrelic() newrelic.Config {
+	return cfg.nrConfig
 }
 
-func (self BaseConfig) GetIntValue(key string) int {
-	if _, ok := config[key]; !ok {
-		config[key] = getIntOrPanic(key)
-	}
-	return config[key].(int)
+func (cfg *BaseConfig) DBConfig() *DBConfig {
+	return cfg.dbConfig
 }
 
-func (self BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	if _, ok := config[key]; !ok {
-		var value int
-		if value = viper.GetInt(key); !viper.IsSet(key) {
-			value = defaultValue
-		}
-		config[key] = value
-	}
-	return config[key].(int)
+func (cfg *BaseConfig) GetValue(key string) string {
+	return getStringOrPanic(cfg.Accessor, key)
 }
 
-func (self BaseConfig) GetFeature(key string) bool {
-	if _, ok := config[key]; !ok {
-		config[key] = getFeature(key)
+func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
+	v, ok := cfg.Accessor.Get(key)
+	if !ok {
+		return defaultValue
 	}
-	return config[key].(bool)
+	return v.(string)
+}
+
+func (cfg *BaseConfig) GetIntValue(key string) int {
+	return getIntOrPanic(cfg.Accessor, key)
+}
+
+func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
+	v, ok := cfg.Accessor.Get(key)
+	if !ok {
+		return defaultValue
+	}
+	return v.(int)
+}
+
+func (cfg *BaseConfig) GetFeature(key string) bool {
+	return getFeature(cfg.Accessor, key)
 }

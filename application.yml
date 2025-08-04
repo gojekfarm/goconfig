@@ -13,3 +13,10 @@ db_url_test: test://somethingTest
 db_max_conn: 5
 db_idle_conn: 2
 db_conn_max_lifetime: 1
+nested_config:
+  level_1:
+    level_2:
+      level_3: value
+      level_4: 42
+    level_5: true
+  level_6: false
