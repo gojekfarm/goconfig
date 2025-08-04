@@ -46,7 +46,7 @@ func NewInMemoryConfigRepository() ConfigRepository {
 }
 
 func (repo *InMemoryConfigRepositoryImpl) Get(key string) (interface{}, bool) {
-	value, exists := repo.config[key]
+	value, exists := repo.config[toLowercaseKey(key)]
 	return value, exists
 }
 
