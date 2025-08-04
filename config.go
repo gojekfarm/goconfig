@@ -89,11 +89,8 @@ func (cfg *BaseConfig) GetValue(key string) string {
 	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		v, ok = cfg.config.Load(key)
-		if !ok {
-			v = getStringOrPanic(key)
-			cfg.config.Store(key, v)
-		}
+		v = getStringOrPanic(key)
+		cfg.config.Store(key, v)
 
 		return v.(string)
 	}
@@ -104,13 +101,10 @@ func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string 
 	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		v, ok := cfg.config.Load(key)
-		if !ok {
-			if v = viper.GetString(key); !viper.IsSet(key) {
-				v = defaultValue
-			}
-			cfg.config.Store(key, v)
+		if v = viper.GetString(key); !viper.IsSet(key) {
+			v = defaultValue
 		}
+		cfg.config.Store(key, v)
 
 		return v.(string)
 	}
@@ -121,11 +115,8 @@ func (cfg *BaseConfig) GetIntValue(key string) int {
 	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		v, ok = cfg.config.Load(key)
-		if !ok {
-			v = getIntOrPanic(key)
-			cfg.config.Store(key, v)
-		}
+		v = getIntOrPanic(key)
+		cfg.config.Store(key, v)
 
 		return v.(int)
 	}
@@ -136,13 +127,10 @@ func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
 	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		v, ok := cfg.config.Load(key)
-		if !ok {
-			if v = viper.GetInt(key); !viper.IsSet(key) {
-				v = defaultValue
-			}
-			cfg.config.Store(key, v)
+		if v = viper.GetInt(key); !viper.IsSet(key) {
+			v = defaultValue
 		}
+		cfg.config.Store(key, v)
 
 		return v.(int)
 	}
@@ -153,11 +141,8 @@ func (cfg *BaseConfig) GetFeature(key string) bool {
 	v, ok := cfg.config.Load(key)
 
 	if !ok {
-		v, ok := cfg.config.Load(key)
-		if !ok {
-			v = getFeature(key)
-			cfg.config.Store(key, v)
-		}
+		v = getFeature(key)
+		cfg.config.Store(key, v)
 
 		return v.(bool)
 	}
