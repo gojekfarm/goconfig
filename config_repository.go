@@ -35,22 +35,22 @@ func (d *EnvConfigRepositoryDecorator) Set(key string, value interface{}) {
 	return
 }
 
-type InMemoryConfigRepositoryImpl struct {
+type InMemoryConfigRepository struct {
 	config map[string]interface{}
 }
 
 func NewInMemoryConfigRepository() ConfigRepository {
-	return &InMemoryConfigRepositoryImpl{
+	return &InMemoryConfigRepository{
 		config: make(map[string]interface{}),
 	}
 }
 
-func (repo *InMemoryConfigRepositoryImpl) Get(key string) (interface{}, bool) {
+func (repo *InMemoryConfigRepository) Get(key string) (interface{}, bool) {
 	value, exists := repo.config[toLowercaseKey(key)]
 	return value, exists
 }
 
-func (repo *InMemoryConfigRepositoryImpl) Set(key string, value interface{}) {
+func (repo *InMemoryConfigRepository) Set(key string, value interface{}) {
 	repo.config[toLowercaseKey(key)] = value
 }
 
