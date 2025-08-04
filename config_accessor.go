@@ -15,7 +15,9 @@ type ConfigAccessor struct {
 
 func NewConfigAccessor() *ConfigAccessor {
 	return &ConfigAccessor{
-		repository:  NewInMemoryConfigRepository(),
+		repository: NewEnvConfigRepositoryDecorator(
+			NewInMemoryConfigRepository(),
+		),
 		configPaths: []string{},
 		configName:  "application",
 	}
@@ -72,16 +74,6 @@ func (c *ConfigAccessor) getConfigFile() (string, bool) {
 }
 
 func (c *ConfigAccessor) Get(key string) (interface{}, bool) {
-	envVal, ok := os.LookupEnv(key)
-	if ok {
-		return envVal, true
-	}
-	key = toLowercaseKey(key)
-	lcaseEnvVal, ok := os.LookupEnv(key)
-	if ok {
-		return lcaseEnvVal, true
-	}
-
 	val, exists := c.repository.Get(key)
 	return val, exists
 }
