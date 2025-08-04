@@ -20,13 +20,9 @@ func NewEnvConfigRepositoryDecorator(innerRepo ConfigRepository) ConfigRepositor
 }
 
 func (d *EnvConfigRepositoryDecorator) Get(key string) (interface{}, bool) {
-	envVal, ok := os.LookupEnv(key)
+	envVal, ok := os.LookupEnv(strings.ToUpper(key))
 	if ok {
 		return envVal, true
-	}
-	lcaseEnvVal, ok := os.LookupEnv(toLowercaseKey(key))
-	if ok {
-		return lcaseEnvVal, true
 	}
 	return d.innerRepo.Get(key)
 }
