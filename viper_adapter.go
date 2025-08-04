@@ -57,56 +57,56 @@ func NewConfigAccessorToViperAdapter(viper ViperAccessor) ConfigFileAccessor {
 	}
 }
 
-type ViperConfigFileAccessorAdapter struct {
+type ViperToConfigFileAccessorAdapter struct {
 	configFileAccessor ConfigFileAccessor
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) SetConfigType(extension string) {
+func (cfa *ViperToConfigFileAccessorAdapter) SetConfigType(extension string) {
 	cfa.configFileAccessor.AddExtension(extension)
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) AddConfigPath(path string) {
+func (cfa *ViperToConfigFileAccessorAdapter) AddConfigPath(path string) {
 	cfa.configFileAccessor.AddPath(path)
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) ReadInConfig() error {
+func (cfa *ViperToConfigFileAccessorAdapter) ReadInConfig() error {
 	return cfa.configFileAccessor.Load()
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) AutomaticEnv() {
+func (cfa *ViperToConfigFileAccessorAdapter) AutomaticEnv() {
 	// pass, no automatic env handling in ConfigFileAccessor
 	return
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) SetConfigName(in string) {
+func (cfa *ViperToConfigFileAccessorAdapter) SetConfigName(in string) {
 	cfa.configFileAccessor.SetConfigName(in)
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) SetDefault(key string, value interface{}) {
+func (cfa *ViperToConfigFileAccessorAdapter) SetDefault(key string, value interface{}) {
 	cfa.configFileAccessor.Set(key, value)
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) Get(key string) interface{} {
+func (cfa *ViperToConfigFileAccessorAdapter) Get(key string) interface{} {
 	value, _ := cfa.configFileAccessor.Get(key)
 	return value
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) GetString(key string) string {
+func (cfa *ViperToConfigFileAccessorAdapter) GetString(key string) string {
 	value, _ := cfa.configFileAccessor.Get(key)
 	return value.(string)
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) GetInt(key string) int {
+func (cfa *ViperToConfigFileAccessorAdapter) GetInt(key string) int {
 	value, _ := cfa.configFileAccessor.Get(key)
 	return value.(int)
 }
 
-func (cfa *ViperConfigFileAccessorAdapter) Set(key string, value interface{}) {
+func (cfa *ViperToConfigFileAccessorAdapter) Set(key string, value interface{}) {
 	cfa.configFileAccessor.Set(key, value)
 }
 
 func NewViperConfigFileAccessorAdapter(configFileAccessor ConfigFileAccessor) ViperAccessor {
-	return &ViperConfigFileAccessorAdapter{
+	return &ViperToConfigFileAccessorAdapter{
 		configFileAccessor: configFileAccessor,
 	}
 }
