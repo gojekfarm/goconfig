@@ -19,14 +19,14 @@ type ConfigManager interface {
 }
 
 type BaseConfig struct {
-	accessor *YamlConfigAccessor
+	accessor ConfigFileAccessor
 	nrConfig newrelic.Config
 	dbConfig *DBConfig
 }
 
 func NewBaseConfig() ConfigManager {
 	return &BaseConfig{
-		accessor: NewYamlConfigAccessor(),
+		accessor: NewDefaultYamlConfigAccessor(),
 	}
 }
 
@@ -35,7 +35,7 @@ func (cfg *BaseConfig) Load() error {
 }
 
 func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
-	cfg.accessor = NewYamlConfigAccessor()
+	cfg.accessor = NewDefaultYamlConfigAccessor()
 	cfg.accessor.Set("port", "3000")
 	cfg.accessor.Set("log_level", "warn")
 	cfg.accessor.Set("redis_password", "")

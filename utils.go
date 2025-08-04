@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-func getIntOrPanic(accessor *YamlConfigAccessor, key string) int {
+func getIntOrPanic(accessor ConfigAccessor, key string) int {
 	v, ok := accessor.Get(key)
 	if !ok {
 		panic(fmt.Errorf("%s key is not set", key))
@@ -13,7 +13,7 @@ func getIntOrPanic(accessor *YamlConfigAccessor, key string) int {
 	return cast.ToInt(v)
 }
 
-func getFeature(accessor *YamlConfigAccessor, key string) bool {
+func getFeature(accessor ConfigAccessor, key string) bool {
 	v, ok := accessor.Get(key)
 	if !ok {
 		return false
@@ -21,7 +21,7 @@ func getFeature(accessor *YamlConfigAccessor, key string) bool {
 	return cast.ToBool(v)
 }
 
-func getStringOrPanic(accessor *YamlConfigAccessor, key string) string {
+func getStringOrPanic(accessor ConfigAccessor, key string) string {
 	v, ok := accessor.Get(key)
 	if !ok {
 		panic(fmt.Errorf("%s key is not set", key))

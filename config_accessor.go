@@ -7,13 +7,43 @@ import (
 	"path/filepath"
 )
 
-type YamlConfigAccessor struct {
-	repository  ConfigRepository
-	configPaths []string
-	configName  string
+type ConfigAccessor interface {
+	Get(key string) (interface{}, bool)
+	Set(key string, value interface{})
 }
 
-func NewYamlConfigAccessor() *YamlConfigAccessor {
+type ConfigFileAccessor interface {
+	ConfigAccessor
+	Load() error
+	SetConfigName(name string)
+	AddExtension(extension string)
+	AddPath(path string)
+}
+
+type YamlConfigAccessor struct {
+	repository     ConfigRepository
+	configPaths    []string
+	configName     string
+	configFileExts []string
+}
+
+func NewYamlConfigAccessor(
+	repository ConfigRepository,
+	configPaths []string,
+	configName string,
+	configFileExts []string,
+) ConfigFileAccessor {
+	return &YamlConfigAccessor{
+		repository:     repository,
+		configPaths:    configPaths,
+		configName:     configName,
+		configFileExts: configFileExts,
+	}
+}
+
+// NewDefaultYamlConfigAccessor creates a new YamlConfigAccessor with default settings.
+// It initializes the repository with an in-memory config repository decorated with environment variable support.
+func NewDefaultYamlConfigAccessor() ConfigFileAccessor {
 	return &YamlConfigAccessor{
 		repository: NewEnvConfigRepositoryDecorator(
 			NewInMemoryConfigRepository(),
@@ -23,12 +53,12 @@ func NewYamlConfigAccessor() *YamlConfigAccessor {
 	}
 }
 
-func (c *YamlConfigAccessor) Set(key string, value interface{}) {
-	c.repository.Set(key, value)
-}
-
 func (c *YamlConfigAccessor) SetConfigName(name string) {
 	c.configName = name
+}
+
+func (c *YamlConfigAccessor) AddExtension(extension string) {
+	c.configFileExts = append(c.configFileExts, extension)
 }
 
 func (c *YamlConfigAccessor) AddPath(path string) {
@@ -36,6 +66,10 @@ func (c *YamlConfigAccessor) AddPath(path string) {
 }
 
 func (c *YamlConfigAccessor) Load() error {
+	if c.configPaths == nil || len(c.configPaths) == 0 {
+		return fmt.Errorf("no config paths set, please add paths using AddPath method")
+	}
+
 	configFile, found := c.getConfigFile()
 
 	if !found {
@@ -61,9 +95,8 @@ func (c *YamlConfigAccessor) Load() error {
 }
 
 func (c *YamlConfigAccessor) getConfigFile() (string, bool) {
-	extensions := []string{"yml", "yaml"}
 	for _, path := range c.configPaths {
-		for _, ext := range extensions {
+		for _, ext := range c.configFileExts {
 			possibleFile := filepath.Join(path, fmt.Sprintf("%s.%s", c.configName, ext))
 			if _, err := os.Stat(possibleFile); err == nil {
 				return possibleFile, true
@@ -74,6 +107,9 @@ func (c *YamlConfigAccessor) getConfigFile() (string, bool) {
 }
 
 func (c *YamlConfigAccessor) Get(key string) (interface{}, bool) {
-	val, exists := c.repository.Get(key)
-	return val, exists
+	return c.repository.Get(key)
+}
+
+func (c *YamlConfigAccessor) Set(key string, value interface{}) {
+	c.repository.Set(key, value)
 }
