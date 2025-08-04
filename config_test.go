@@ -105,3 +105,12 @@ func TestShouldSetConfigPathBasedOnOptionaParam(t *testing.T) {
 	config.LoadWithOptions(map[string]interface{}{"configPath": "/tmp"})
 	assert.Equal(t, "9998", config.GetValue("foo"))
 }
+
+func TestShouldNestedConfigValueBasedOnApplicationConfig(t *testing.T) {
+	config := &AppConfig{}
+	config.Load()
+	assert.Equal(t, "value", config.GetValue("nested_config.level_1.level_2.level_3"))
+	assert.Equal(t, 42, config.GetIntValue("nested_config.level_1.level_2.level_4"))
+	assert.Equal(t, true, config.GetFeature("nested_config.level_1.level_5"))
+	assert.Equal(t, false, config.GetFeature("nested_config.level_6"))
+}

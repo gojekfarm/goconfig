@@ -21,6 +21,7 @@ type ConfigFileAccessor interface {
 }
 
 type YamlConfigAccessor struct {
+	levelDelimiter string
 	repository     ConfigRepository
 	configPaths    []string
 	configName     string
@@ -32,12 +33,14 @@ func NewYamlConfigAccessor(
 	configPaths []string,
 	configName string,
 	configFileExts []string,
+	multiLevelDelimiter string,
 ) ConfigFileAccessor {
 	return &YamlConfigAccessor{
 		repository:     repository,
 		configPaths:    configPaths,
 		configName:     configName,
 		configFileExts: configFileExts,
+		levelDelimiter: multiLevelDelimiter,
 	}
 }
 
@@ -48,8 +51,10 @@ func NewDefaultYamlConfigAccessor() ConfigFileAccessor {
 		repository: NewEnvConfigRepositoryDecorator(
 			NewInMemoryConfigRepository(),
 		),
-		configPaths: []string{},
-		configName:  "application",
+		levelDelimiter: ".",
+		configPaths:    []string{},
+		configName:     "application",
+		configFileExts: []string{"yaml", "yml"},
 	}
 }
 
@@ -87,7 +92,7 @@ func (c *YamlConfigAccessor) Load() error {
 		return fmt.Errorf("error unmarshaling config: %v", err)
 	}
 
-	for k, v := range yamlConfig {
+	for k, v := range c.flattenMap(yamlConfig) {
 		c.repository.Set(k, v)
 	}
 
@@ -104,6 +109,41 @@ func (c *YamlConfigAccessor) getConfigFile() (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func (c *YamlConfigAccessor) flattenMap(m map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	var flatten func(map[string]interface{}, string)
+	flatten = func(nested map[string]interface{}, prefix string) {
+		for k, v := range nested {
+			key := k
+			if prefix != "" {
+				key = prefix + c.levelDelimiter + k
+			}
+
+			switch val := v.(type) {
+			case map[string]interface{}:
+				flatten(val, key)
+			case map[interface{}]interface{}:
+				stringMap := make(map[string]interface{})
+				for mk, mv := range val {
+					if mkString, ok := mk.(string); ok {
+						stringMap[mkString] = mv
+					} else {
+						fmt.Printf("skipping non-string key during flatten map: %v\n", mk)
+					}
+				}
+				flatten(stringMap, key)
+			default:
+				// For non-map values, add them directly to the result
+				result[key] = v
+			}
+		}
+	}
+
+	flatten(m, "")
+	return result
 }
 
 func (c *YamlConfigAccessor) Get(key string) (interface{}, bool) {
