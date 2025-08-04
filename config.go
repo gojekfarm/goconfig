@@ -3,25 +3,69 @@ package goconfig
 import (
 	"github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
+	"sync"
 )
 
-type Config interface {
+// ConfigReader provides methods to retrieve configuration values in different formats.
+// Values are cached after the first retrieval for better performance.
+type ConfigReader interface {
+	// GetValue retrieves a string configuration value for the given key.
+	// Panics if the key doesn't exist in the configuration.
 	GetValue(string) string
+
+	// GetOptionalValue retrieves a string configuration value for the given key.
+	// Returns the defaultValue if the key doesn't exist in the configuration.
+	GetOptionalValue(key string, defaultValue string) string
+
+	// GetIntValue retrieves an integer configuration value for the given key.
+	// Panics if the key doesn't exist or if the value cannot be parsed as an integer.
 	GetIntValue(string) int
+
+	// GetOptionalIntValue retrieves an integer configuration value for the given key.
+	// Returns the defaultValue if the key doesn't exist or cannot be parsed as an integer.
+	GetOptionalIntValue(key string, defaultValue int) int
+
+	// GetFeature retrieves a boolean feature flag value.
+	// Returns false if the key doesn't exist or cannot be parsed as a boolean.
+	GetFeature(key string) bool
 }
 
-type configuration map[string]interface{}
+// ConfigManager extends the ConfigReader interface with methods for loading configuration.
+// It provides functionality to load configuration from files and environment variables,
+// with support for custom loading options.
+type ConfigManager interface {
+	ConfigReader
 
-var config configuration
+	// Load initializes the configuration with default settings.
+	// It reads from application.yaml files in current and parent directories
+	// and from environment variables.
+	// Returns an error if configuration loading fails.
+	Load() error
+
+	// LoadWithOptions initializes the configuration with custom options.
+	// Options can include:
+	//   - "configPath": string - Path to look for configuration files
+	//   - "newrelic": bool - Whether to load New Relic configuration
+	//   - "db": bool - Whether to load database configuration
+	// Returns an error if configuration loading fails.
+	LoadWithOptions(options map[string]interface{}) error
+}
 
 type BaseConfig struct {
+	config sync.Map
 }
 
-func (self BaseConfig) Load() {
-	self.LoadWithOptions(map[string]interface{}{})
+func NewBaseConfig() ConfigManager {
+	return &BaseConfig{
+		config: sync.Map{},
+	}
 }
 
-func (self BaseConfig) LoadWithOptions(options map[string]interface{}) {
+func (cfg *BaseConfig) Load() error {
+	return cfg.LoadWithOptions(map[string]interface{}{})
+}
+
+func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
 	viper.SetDefault("port", "3000")
 	viper.SetDefault("log_level", "warn")
 	viper.SetDefault("redis_password", "")
@@ -34,76 +78,104 @@ func (self BaseConfig) LoadWithOptions(options map[string]interface{}) {
 		viper.AddConfigPath("../")
 	}
 	viper.SetConfigType("yaml")
-	viper.ReadInConfig()
-	config = configuration{}
+	err := viper.ReadInConfig()
+	if err != nil {
+		return err
+	}
+	cfg.config = sync.Map{}
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
-		config["newrelic"] = getNewRelicConfigOrPanic()
+		cfg.config.Store("newrelic", getNewRelicConfigOrPanic())
 	}
 	if options["db"] != nil && options["db"].(bool) {
-		config["db_config"] = LoadDbConf()
-	}
-}
-
-func (self BaseConfig) setTestDBUrl(dbConf *DBConfig) {
-	dbConf.url = getStringOrPanic("db_url_test")
-	dbConf.slaveUrl = getStringOrPanic("db_url_test")
-}
-
-func (self BaseConfig) LoadTestConfig(options map[string]interface{}) error {
-	self.LoadWithOptions(options)
-	if options["db"] != nil && options["db"].(bool) {
-		self.setTestDBUrl(config["db_config"].(*DBConfig))
+		cfg.config.Store("db_config", LoadDbConf())
 	}
 	return nil
 }
 
-func (self BaseConfig) Newrelic() newrelic.Config {
-	return config["newrelic"].(newrelic.Config)
+func (cfg *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
+	dbConf.url = getStringOrPanic("db_url_test")
+	dbConf.slaveUrl = getStringOrPanic("db_url_test")
 }
 
-func (self BaseConfig) DBConfig() *DBConfig {
-	return config["db_config"].(*DBConfig)
-}
-
-func (self BaseConfig) GetValue(key string) string {
-	if _, ok := config[key]; !ok {
-		config[key] = getStringOrPanic(key)
+func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
+	cfg.LoadWithOptions(options)
+	if options["db"] != nil && options["db"].(bool) {
+		dbUrl, _ := cfg.config.Load("db_config")
+		cfg.setTestDBUrl(dbUrl.(*DBConfig))
 	}
-	return config[key].(string)
+	return nil
 }
 
-func (self BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	if _, ok := config[key]; !ok {
-		var value string
-		if value = viper.GetString(key); !viper.IsSet(key) {
-			value = defaultValue
+func (cfg *BaseConfig) Newrelic() newrelic.Config {
+	nrConfig, _ := cfg.config.Load("newrelic")
+	return nrConfig.(newrelic.Config)
+}
+
+func (cfg *BaseConfig) DBConfig() *DBConfig {
+	dbConfig, _ := cfg.config.Load("db_config")
+	return dbConfig.(*DBConfig)
+}
+
+func (cfg *BaseConfig) GetValue(key string) string {
+	v, ok := cfg.config.Load(key)
+
+	if !ok {
+		v = getStringOrPanic(key)
+		cfg.config.Store(key, v)
+
+		return v.(string)
+	}
+	return v.(string)
+}
+
+func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
+	v, ok := cfg.config.Load(key)
+
+	if !ok {
+		if v = viper.GetString(key); !viper.IsSet(key) {
+			v = defaultValue
 		}
-		config[key] = value
+		cfg.config.Store(key, v)
+
+		return v.(string)
 	}
-	return config[key].(string)
+	return v.(string)
 }
 
-func (self BaseConfig) GetIntValue(key string) int {
-	if _, ok := config[key]; !ok {
-		config[key] = getIntOrPanic(key)
+func (cfg *BaseConfig) GetIntValue(key string) int {
+	v, ok := cfg.config.Load(key)
+
+	if !ok {
+		v = getIntOrPanic(key)
+		cfg.config.Store(key, v)
+
+		return v.(int)
 	}
-	return config[key].(int)
+	return v.(int)
 }
 
-func (self BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	if _, ok := config[key]; !ok {
-		var value int
-		if value = viper.GetInt(key); !viper.IsSet(key) {
-			value = defaultValue
+func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
+	v, ok := cfg.config.Load(key)
+
+	if !ok {
+		if v = viper.GetInt(key); !viper.IsSet(key) {
+			v = defaultValue
 		}
-		config[key] = value
+		cfg.config.Store(key, v)
+
+		return v.(int)
 	}
-	return config[key].(int)
+	return v.(int)
 }
 
-func (self BaseConfig) GetFeature(key string) bool {
-	if _, ok := config[key]; !ok {
-		config[key] = getFeature(key)
+func (cfg *BaseConfig) GetFeature(key string) bool {
+	v, ok := cfg.config.Load(key)
+
+	if !ok {
+		v = getFeature(key)
+		cfg.config.Store(key, v)
+
+		return v.(bool)
 	}
-	return config[key].(bool)
+	return v.(bool)
 }
