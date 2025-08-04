@@ -2,40 +2,38 @@ package goconfig
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"os"
 	"path/filepath"
-	"strings"
-
-	"gopkg.in/yaml.v2"
 )
 
 type ConfigAccessor struct {
-	config      map[string]interface{}
+	repository  ConfigRepository
 	configPaths []string
 	configName  string
 }
 
 func NewConfigAccessor() *ConfigAccessor {
 	return &ConfigAccessor{
-		config:      make(map[string]interface{}),
+		repository:  NewInMemoryConfigRepository(),
 		configPaths: []string{},
 		configName:  "application",
 	}
 }
 
-func (c *ConfigAccessor) SetDefault(key string, value interface{}) {
-	c.config[strings.ToLower(key)] = value
+func (c *ConfigAccessor) Set(key string, value interface{}) {
+	c.repository.Set(key, value)
 }
 
 func (c *ConfigAccessor) SetConfigName(name string) {
 	c.configName = name
 }
 
-func (c *ConfigAccessor) AddConfigPath(path string) {
+func (c *ConfigAccessor) AddPath(path string) {
 	c.configPaths = append(c.configPaths, path)
 }
 
-func (c *ConfigAccessor) ReadYamlConfig() error {
+func (c *ConfigAccessor) Load() error {
 	configFile, found := c.getConfigFile()
 
 	if !found {
@@ -53,10 +51,8 @@ func (c *ConfigAccessor) ReadYamlConfig() error {
 		return fmt.Errorf("error unmarshaling config: %v", err)
 	}
 
-	processedConfig := convertKeys(yamlConfig)
-
-	for k, v := range processedConfig {
-		c.config[k] = v
+	for k, v := range yamlConfig {
+		c.repository.Set(k, v)
 	}
 
 	return nil
@@ -75,7 +71,7 @@ func (c *ConfigAccessor) getConfigFile() (string, bool) {
 	return "", false
 }
 
-func (c *ConfigAccessor) GetValue(key string) (interface{}, bool) {
+func (c *ConfigAccessor) Get(key string) (interface{}, bool) {
 	envVal, ok := os.LookupEnv(key)
 	if ok {
 		return envVal, true
@@ -86,21 +82,6 @@ func (c *ConfigAccessor) GetValue(key string) (interface{}, bool) {
 		return lcaseEnvVal, true
 	}
 
-	val, exists := c.config[key]
+	val, exists := c.repository.Get(key)
 	return val, exists
-}
-
-func toLowercaseKey(key string) string {
-	return strings.ToLower(key)
-}
-
-func convertKeys(m map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
-
-	for k, v := range m {
-		lowerKey := toLowercaseKey(k)
-		result[lowerKey] = v
-	}
-
-	return result
 }

@@ -19,14 +19,14 @@ type ConfigManager interface {
 }
 
 type BaseConfig struct {
-	loader   *ConfigAccessor
+	accessor *ConfigAccessor
 	nrConfig newrelic.Config
 	dbConfig *DBConfig
 }
 
 func NewBaseConfig() ConfigManager {
 	return &BaseConfig{
-		loader: NewConfigAccessor(),
+		accessor: NewConfigAccessor(),
 	}
 }
 
@@ -35,34 +35,34 @@ func (cfg *BaseConfig) Load() error {
 }
 
 func (cfg *BaseConfig) LoadWithOptions(options map[string]interface{}) error {
-	cfg.loader = NewConfigAccessor()
-	cfg.loader.SetDefault("port", "3000")
-	cfg.loader.SetDefault("log_level", "warn")
-	cfg.loader.SetDefault("redis_password", "")
-	cfg.loader.SetConfigName("application")
+	cfg.accessor = NewConfigAccessor()
+	cfg.accessor.Set("port", "3000")
+	cfg.accessor.Set("log_level", "warn")
+	cfg.accessor.Set("redis_password", "")
+	cfg.accessor.SetConfigName("application")
 	if options["configPath"] != nil {
-		cfg.loader.AddConfigPath(options["configPath"].(string))
+		cfg.accessor.AddPath(options["configPath"].(string))
 	} else {
-		cfg.loader.AddConfigPath("./")
-		cfg.loader.AddConfigPath("../")
+		cfg.accessor.AddPath("./")
+		cfg.accessor.AddPath("../")
 	}
-	err := cfg.loader.ReadYamlConfig()
+	err := cfg.accessor.Load()
 	if err != nil {
 		return err
 	}
 
 	if options["newrelic"] != nil && options["newrelic"].(bool) {
-		cfg.nrConfig = getNewRelicConfigOrPanic(cfg.loader)
+		cfg.nrConfig = getNewRelicConfigOrPanic(cfg.accessor)
 	}
 	if options["db"] != nil && options["db"].(bool) {
-		cfg.dbConfig = LoadDbConf(cfg.loader)
+		cfg.dbConfig = LoadDbConf(cfg.accessor)
 	}
 	return nil
 }
 
 func (cfg *BaseConfig) setTestDBUrl(dbConf *DBConfig) {
-	dbConf.url = getStringOrPanic(cfg.loader, "db_url_test")
-	dbConf.slaveUrl = getStringOrPanic(cfg.loader, "db_url_test")
+	dbConf.url = getStringOrPanic(cfg.accessor, "db_url_test")
+	dbConf.slaveUrl = getStringOrPanic(cfg.accessor, "db_url_test")
 }
 
 func (cfg *BaseConfig) LoadTestConfig(options map[string]interface{}) error {
@@ -85,11 +85,11 @@ func (cfg *BaseConfig) DBConfig() *DBConfig {
 }
 
 func (cfg *BaseConfig) GetValue(key string) string {
-	return getStringOrPanic(cfg.loader, key)
+	return getStringOrPanic(cfg.accessor, key)
 }
 
 func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string {
-	v, ok := cfg.loader.GetValue(key)
+	v, ok := cfg.accessor.Get(key)
 	if !ok {
 		return defaultValue
 	}
@@ -97,11 +97,11 @@ func (cfg *BaseConfig) GetOptionalValue(key string, defaultValue string) string 
 }
 
 func (cfg *BaseConfig) GetIntValue(key string) int {
-	return getIntOrPanic(cfg.loader, key)
+	return getIntOrPanic(cfg.accessor, key)
 }
 
 func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
-	v, ok := cfg.loader.GetValue(key)
+	v, ok := cfg.accessor.Get(key)
 	if !ok {
 		return defaultValue
 	}
@@ -109,5 +109,5 @@ func (cfg *BaseConfig) GetOptionalIntValue(key string, defaultValue int) int {
 }
 
 func (cfg *BaseConfig) GetFeature(key string) bool {
-	return getFeature(cfg.loader, key)
+	return getFeature(cfg.accessor, key)
 }

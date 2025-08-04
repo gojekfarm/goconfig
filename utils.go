@@ -6,7 +6,7 @@ import (
 )
 
 func getIntOrPanic(loader *ConfigAccessor, key string) int {
-	v, ok := loader.GetValue(key)
+	v, ok := loader.Get(key)
 	if !ok {
 		panic(fmt.Errorf("%s key is not set", key))
 	}
@@ -14,7 +14,7 @@ func getIntOrPanic(loader *ConfigAccessor, key string) int {
 }
 
 func getFeature(loader *ConfigAccessor, key string) bool {
-	v, ok := loader.GetValue(key)
+	v, ok := loader.Get(key)
 	if !ok {
 		return false
 	}
@@ -22,7 +22,7 @@ func getFeature(loader *ConfigAccessor, key string) bool {
 }
 
 func getStringOrPanic(loader *ConfigAccessor, key string) string {
-	v, ok := loader.GetValue(key)
+	v, ok := loader.Get(key)
 	if !ok {
 		panic(fmt.Errorf("%s key is not set", key))
 	}
