@@ -3,6 +3,7 @@ package goconfig
 import (
 	"os"
 	"strings"
+	"sync"
 )
 
 type ConfigRepository interface {
@@ -36,22 +37,22 @@ func (d *EnvConfigRepositoryDecorator) Set(key string, value interface{}) {
 }
 
 type InMemoryConfigRepository struct {
-	config map[string]interface{}
+	config sync.Map
 }
 
 func NewInMemoryConfigRepository() ConfigRepository {
 	return &InMemoryConfigRepository{
-		config: make(map[string]interface{}),
+		config: sync.Map{},
 	}
 }
 
 func (repo *InMemoryConfigRepository) Get(key string) (interface{}, bool) {
-	value, exists := repo.config[toLowercaseKey(key)]
+	value, exists := repo.config.Load(toLowercaseKey(key))
 	return value, exists
 }
 
 func (repo *InMemoryConfigRepository) Set(key string, value interface{}) {
-	repo.config[toLowercaseKey(key)] = value
+	repo.config.Store(toLowercaseKey(key), value)
 }
 
 func toLowercaseKey(key string) string {
