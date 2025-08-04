@@ -6,17 +6,48 @@ import (
 	"sync"
 )
 
+// ConfigReader provides methods to retrieve configuration values in different formats.
+// Values are cached after the first retrieval for better performance.
 type ConfigReader interface {
+	// GetValue retrieves a string configuration value for the given key.
+	// Panics if the key doesn't exist in the configuration.
 	GetValue(string) string
+
+	// GetOptionalValue retrieves a string configuration value for the given key.
+	// Returns the defaultValue if the key doesn't exist in the configuration.
 	GetOptionalValue(key string, defaultValue string) string
+
+	// GetIntValue retrieves an integer configuration value for the given key.
+	// Panics if the key doesn't exist or if the value cannot be parsed as an integer.
 	GetIntValue(string) int
+
+	// GetOptionalIntValue retrieves an integer configuration value for the given key.
+	// Returns the defaultValue if the key doesn't exist or cannot be parsed as an integer.
 	GetOptionalIntValue(key string, defaultValue int) int
+
+	// GetFeature retrieves a boolean feature flag value.
+	// Returns false if the key doesn't exist or cannot be parsed as a boolean.
 	GetFeature(key string) bool
 }
 
+// ConfigManager extends the ConfigReader interface with methods for loading configuration.
+// It provides functionality to load configuration from files and environment variables,
+// with support for custom loading options.
 type ConfigManager interface {
 	ConfigReader
+
+	// Load initializes the configuration with default settings.
+	// It reads from application.yaml files in current and parent directories
+	// and from environment variables.
+	// Returns an error if configuration loading fails.
 	Load() error
+
+	// LoadWithOptions initializes the configuration with custom options.
+	// Options can include:
+	//   - "configPath": string - Path to look for configuration files
+	//   - "newrelic": bool - Whether to load New Relic configuration
+	//   - "db": bool - Whether to load database configuration
+	// Returns an error if configuration loading fails.
 	LoadWithOptions(options map[string]interface{}) error
 }
 
