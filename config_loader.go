@@ -2,7 +2,6 @@ package goconfig
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,7 +42,7 @@ func (c *ConfigLoader) ReadYamlConfig() error {
 		return fmt.Errorf("config file not found in paths: %v", c.configPaths)
 	}
 
-	yamlFile, err := ioutil.ReadFile(configFile)
+	yamlFile, err := os.ReadFile(configFile)
 	if err != nil {
 		return fmt.Errorf("error reading config file: %v", err)
 	}
@@ -54,7 +53,7 @@ func (c *ConfigLoader) ReadYamlConfig() error {
 		return fmt.Errorf("error unmarshaling config: %v", err)
 	}
 
-	processedConfig := convertKeysToLowerStrings(yamlConfig)
+	processedConfig := convertKeys(yamlConfig)
 
 	for k, v := range processedConfig {
 		c.config[k] = v
@@ -77,26 +76,29 @@ func (c *ConfigLoader) getConfigFile() (string, bool) {
 }
 
 func (c *ConfigLoader) GetValue(key string) (interface{}, bool) {
-	key = strings.ToLower(key)
 	envVal, ok := os.LookupEnv(key)
 	if ok {
 		return envVal, true
 	}
-	key = strings.ToLower(key)
-	lowercaseEnvVal, ok := os.LookupEnv(key)
+	key = toLowercaseKey(key)
+	lcaseEnvVal, ok := os.LookupEnv(key)
 	if ok {
-		return lowercaseEnvVal, true
+		return lcaseEnvVal, true
 	}
 
 	val, exists := c.config[key]
 	return val, exists
 }
 
-func convertKeysToLowerStrings(m map[string]interface{}) map[string]interface{} {
+func toLowercaseKey(key string) string {
+	return strings.ToLower(key)
+}
+
+func convertKeys(m map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 
 	for k, v := range m {
-		lowerKey := strings.ToLower(k)
+		lowerKey := toLowercaseKey(k)
 		result[lowerKey] = v
 	}
 
