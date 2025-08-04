@@ -5,9 +5,9 @@ import (
 )
 
 func getNewRelicConfigOrPanic(accessor ConfigAccessor) newrelic.Config {
-	config := newrelic.NewConfig(getStringOrPanic(accessor, "NEW_RELIC_APP_NAME"), getStringOrPanic(accessor, "NEW_RELIC_LICENCE_KEY"))
+	config := newrelic.NewConfig(getString(accessor, "NEW_RELIC_APP_NAME"), getString(accessor, "NEW_RELIC_LICENCE_KEY"))
 	config.Enabled = getFeature(accessor, "NEW_RELIC_ENABLED")
-	labels, err := parseNewRelicLabels(getStringOrPanic(accessor, "NEW_RELIC_LABELS"))
+	labels, err := parseNewRelicLabels(getString(accessor, "NEW_RELIC_LABELS"))
 	if err == nil {
 		config.Labels = labels
 	}

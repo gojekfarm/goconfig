@@ -28,3 +28,8 @@ func getStringOrPanic(accessor ConfigAccessor, key string) string {
 	}
 	return cast.ToString(v)
 }
+
+func getString(accessor ConfigAccessor, key string) string {
+	v, _ := accessor.Get(key)
+	return cast.ToString(v)
+}
