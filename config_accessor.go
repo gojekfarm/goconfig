@@ -136,7 +136,6 @@ func (c *YamlConfigAccessor) flattenMap(m map[string]interface{}) map[string]int
 				}
 				flatten(stringMap, key)
 			default:
-				// For non-map values, add them directly to the result
 				result[key] = v
 			}
 		}
